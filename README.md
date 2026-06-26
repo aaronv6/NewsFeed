@@ -20,6 +20,12 @@ python3 -m http.server 8000
 
 Then visit http://localhost:8000.
 
+## GitHub Pages
+
+Once GitHub Pages is enabled for this repository, the site will be available at:
+
+https://newsfeed.github.io/
+
 ## Notes
 
 - This project uses public RSS feeds plus browser-side proxy fallback, so some feeds may occasionally be rate-limited or blocked by providers.
