@@ -88,17 +88,22 @@ const newsSources = {
 let activeSources = ['npr', 'fox', 'cbs', 'abc'];
 let currentCategory = 'top';
 
-// CORS proxies - use public services that still return feed content
+// CORS proxies - try several public proxies; prefer those that accept a raw URL
 const corsProxies = [
-    'https://api.allorigins.win/raw?url=',
+    'http://localhost:8080/fetch?url=',       // local dev proxy (optional)
+    'https://api.allorigins.win/raw?url=',    // requires encoded URL
+    'https://thingproxy.freeboard.io/fetch/', // append raw URL
     'https://r.jina.ai/http://'
 ];
 
 function buildProxyUrl(proxy, feedUrl) {
-    if (proxy.includes('r.jina.ai')) {
-        return `${proxy}${feedUrl}`;
+    // If the proxy expects an encoded URL param (contains "?url=" or "raw?url=")
+    if (proxy.includes('?url=') || proxy.includes('raw?url=')) {
+        return `${proxy}${encodeURIComponent(feedUrl)}`;
     }
-    return `${proxy}${encodeURIComponent(feedUrl)}`;
+
+    // Otherwise append the feed URL directly (proxy will fetch it as-is)
+    return `${proxy}${feedUrl}`;
 }
 
 // Cache for article images to avoid refetching
@@ -282,7 +287,7 @@ function parseRSS(xmlText) {
     return articles;
 }
 
-async function fetchWithTimeout(url, timeout = 5000) {
+async function fetchWithTimeout(url, timeout = 8000) {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
     try {
