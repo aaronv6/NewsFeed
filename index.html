@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News Feed</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gray-950 text-white min-h-screen">
+    <div class="max-w-4xl mx-auto p-6">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-8">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-newspaper text-4xl text-blue-400"></i>
+                <h1 class="text-4xl font-bold">News Feed</h1>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="refreshNews()" class="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl transition">
+                    <i class="fa-solid fa-rotate-right mr-2"></i>Refresh
+                </button>
+                <button onclick="toggleSettings()" class="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl transition">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Settings Panel -->
+        <div id="settingsPanel" class="hidden bg-gray-900 rounded-2xl p-6 mb-6">
+            <h3 class="text-lg font-semibold mb-4">About</h3>
+            <p class="text-gray-400 text-sm mb-4">
+                Aggregates US news from NPR, Fox, CBS, and ABC RSS feeds.
+                Click source buttons (NPR, Fox, etc.) to toggle which outlets to include.
+                USA-only content from the last 24-48 hours.
+            </p>
+        </div>
+
+        <!-- Source Filter -->
+        <div class="flex gap-2 overflow-x-auto pb-2 mb-2 scrollbar-hide">
+            <button id="source-npr" onclick="toggleSource('npr')" class="bg-blue-600 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition">NPR</button>
+            <button id="source-fox" onclick="toggleSource('fox')" class="bg-blue-600 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition">Fox</button>
+            <button id="source-cbs" onclick="toggleSource('cbs')" class="bg-blue-600 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition">CBS</button>
+            <button id="source-abc" onclick="toggleSource('abc')" class="bg-blue-600 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition">ABC</button>
+        </div>
+
+        <!-- Category Filter -->
+        <div class="flex gap-2 overflow-x-auto pb-4 mb-4 scrollbar-hide">
+            <button onclick="setCategory('top')" data-cat="top" class="category-btn bg-blue-600 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap">Top</button>
+            <button onclick="setCategory('technology')" data-cat="technology" class="category-btn bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap">Technology</button>
+            <button onclick="setCategory('business')" data-cat="business" class="category-btn bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap">Business</button>
+            <button onclick="setCategory('politics')" data-cat="politics" class="category-btn bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap">Politics</button>
+            <button onclick="setCategory('health')" data-cat="health" class="category-btn bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap">Health</button>
+            <button onclick="setCategory('science')" data-cat="science" class="category-btn bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap">Science</button>
+            <button onclick="setCategory('sports')" data-cat="sports" class="category-btn bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap">Sports</button>
+            <button onclick="setCategory('entertainment')" data-cat="entertainment" class="category-btn bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap">Entertainment</button>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading" class="hidden flex flex-col items-center py-20">
+            <div class="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full mb-4"></div>
+            <p class="text-gray-400">Fetching news...</p>
+        </div>
+
+        <!-- Error -->
+        <div id="error" class="hidden bg-red-900/50 border border-red-700 rounded-2xl p-8 text-center">
+            <p id="errorMessage" class="text-lg mb-4"></p>
+        </div>
+
+        <!-- News Grid -->
+        <div id="newsContainer" class="grid gap-4">
+            <div class="text-center py-20 text-gray-400">
+                <i class="fa-solid fa-newspaper text-6xl mb-4 opacity-30"></i>
+                <p>Click Refresh to load news</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Article Modal -->
+    <div id="articleModal" class="hidden fixed inset-0 bg-black/90 z-50">
+        <div class="h-screen flex flex-col">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between bg-gray-900 px-6 py-4 border-b border-gray-800">
+                <div class="flex items-center gap-3 overflow-hidden">
+                    <span id="modalSource" class="bg-blue-600 text-xs font-semibold px-3 py-1 rounded-full flex-shrink-0"></span>
+                    <h2 id="modalTitle" class="text-lg font-semibold truncate"></h2>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <a id="modalLink" href="#" target="_blank" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-xl text-sm font-medium transition">
+                        Open <i class="fa-solid fa-external-link-alt ml-1"></i>
+                    </a>
+                    <button onclick="closeModal()" class="bg-gray-800 hover:bg-gray-700 w-10 h-10 rounded-xl flex items-center justify-center transition">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+            </div>
+            <!-- View Toggle -->
+            <div class="bg-gray-900 border-b border-gray-800 px-6 py-2 flex gap-2">
+                <button id="readerViewBtn" onclick="switchView('reader')" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition">
+                    <i class="fa-solid fa-book-open mr-2"></i>Reader View
+                </button>
+                <button id="originalViewBtn" onclick="switchView('original')" class="bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition">
+                    <i class="fa-solid fa-globe mr-2"></i>Original Site
+                </button>
+            </div>
+            <!-- Reader View Container -->
+            <div id="readerView" class="hidden flex-1 bg-gray-900 overflow-y-auto">
+                <div class="max-w-3xl mx-auto p-6 md:p-10">
+                    <div id="readerLoading" class="flex flex-col items-center py-20">
+                        <div class="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full mb-4"></div>
+                        <p class="text-gray-400">Loading article...</p>
+                    </div>
+                    <article id="readerContent" class="hidden">
+                        <img id="readerImage" src="" alt="" class="w-full h-64 md:h-96 object-cover rounded-2xl mb-8 shadow-lg">
+                        <div id="readerText" class="prose prose-lg max-w-none text-gray-100 leading-relaxed"></div>
+                    </article>
+                    <div id="readerError" class="hidden text-center py-20">
+                        <i class="fa-solid fa-circle-exclamation text-6xl text-gray-500 mb-4"></i>
+                        <p class="text-gray-300 text-lg mb-4">Couldn't extract article content.</p>
+                        <a id="readerFallbackLink" href="#" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold transition">
+                            Open Original Article
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <!-- Iframe Container -->
+            <div id="originalView" class="flex-1 bg-white relative">
+                <iframe id="articleFrame" src="" class="w-full h-full border-0" sandbox="allow-same-origin allow-top-navigation-by-user-activation"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
